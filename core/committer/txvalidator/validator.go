@@ -480,17 +480,14 @@ func (v *TxValidator) checkTxIdDupsLedger(tIdx int, chdr *common.ChannelHeader, 
 	txID := chdr.TxId
 
 	// Look for a transaction with the same identifier inside the ledger
-	_, err := ldgr.GetTransactionByID(txID)
-
-	// if returned error is nil, it means that there is already a tx in
-	// the ledger with the supplied id
-	if err == nil {
-		logger.Error("Duplicate transaction found, ", txID, ", skipping")
-		return &blockValidationResult{
-			tIdx:           tIdx,
-			validationCode: peer.TxValidationCode_DUPLICATE_TXID,
-		}
-	}
+        transData, err := ldgr.GetTransactionByID(txID)
+        if err == nil {
+          if transData.ValidationCode == int32(peer.TxValidationCode_VALID) || transData.ValidationCode == int32(peer.TxValidationCode_DUPLICATE_TXID){
+             logger.Error("Duplicate transaction found, ", txID, ", skipping")
+             txsfltr.SetFlag(tIdx, peer.TxValidationCode_DUPLICATE_TXID)
+             continue
+          }
+        }
 
 	// if returned error is not of type blkstorage.NotFoundInIndexErr, it means
 	// we could not verify whether a tx with the supplied id is in the ledger
